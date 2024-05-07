@@ -45,50 +45,58 @@ class CustomTopology(Topo):
         self.addLink(s5,h6)
 
         # Connecting hosts to switches
-        for h, s in [(h1, s1), (h2, s1)]:
+        for h, s in [(h1, s1), (h2, s1), (h3, s2), (h4, s2), (h5, s4), (h6, s4)]:
             self.addLink(h, s)
     
 topos = { 'mytopo': ( lambda: CustomTopology() ) }
 
 def run():
-    topo = NetworkTopo()
+    topo = CustomTopology()
 
-    net = Mininet(topo=topo, controller=None)
+    net = Mininet(topo=topo, controller=Controller)
 
     net.start()
-    print('####Informacoes das portas####\n\n\n')
+    print('---- Informações das portas ----\n\n\n')
     dumpNodeConnections(net.hosts)
-    print('####ping entre os dois nos com switch standalone###\n\n\n')
+
+    print('---- Ping entre os dois nos com switch standalone ----\n\n\n')
     pingpar=net.pingPair()
     print(pingpar)
-    d1 = net.get('d1')
-    print('####Apagando as regras ###\n\n\n')
+    d1 = net.get('h1')
+
+    print('---- Apagando as regras ----\n\n\n')
     print(d1.cmd('sudo ovs-ofctl del-flows s1'))
     print(d1.cmd('sudo ovs-ofctl dump-flows s1'))
-    print('### Teste de ping sem regras ###\n\n\n')
+
+    print('---- Teste de ping sem regras ----\n\n\n')
     print(d1.cmd('ping -c1 192.168.0.2'))
     net['s1'].cmd('ovs-ofctl add-flow s1 action=normal')
     print(d1.cmd('sudo ovs-ofctl dump-flows s1'))
-    print('### Teste de ping switch normal ###\n\n\n')
+
+    print('---- Teste de ping switch normal ----\n\n\n')
     print(d1.cmd('ping -c1 192.168.0.2'))
-    print('### Apagando as regras ###\n\n\n')
+    
+    print('---- Apagando as regras ----\n\n\n')
     print(d1.cmd('sudo ovs-ofctl del-flows s1'))
-    print('### Criando as regras no switch s1 de portas ###\n\n\n')
+
+    print('---- Criando as regras no switch s1 de portas ----\n\n\n')
     net['s1'].cmd('sudo ovs-ofctl add-flow s1 in_port=1,actions=output:2')
     net['s1'].cmd('sudo ovs-ofctl add-flow s1 in_port=2,actions=output:1')
     print(d1.cmd('sudo ovs-ofctl dump-flows s1'))
-    print('### Teste de ping das regras criadas ###\n\n\n')
+
+    print('---- Teste de ping das regras criadas ----\n\n\n')
     print(d1.cmd('ping -c1 192.168.0.2'))
-    print('### Criando as regras no switch s1 de mac ###\n\n\n')
+
+    print('---- Criando as regras no switch s1 de mac ----\n\n\n')
     print(d1.cmd('sudo ovs-ofctl del-flows s1'))
     net['s1'].cmd('sudo ovs-ofctl add-flow s1 dl_src=00:00:00:00:00:01,dl_dst=00:00:00:00:00:02,actions=output:2')
     net['s1'].cmd('sudo ovs-ofctl add-flow s1 dl_src=00:00:00:00:00:02,dl_dst=00:00:00:00:00:01,actions=output:1')
     net['s1'].cmd('sudo ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,action=flood')
     print(d1.cmd('sudo ovs-ofctl dump-flows s1'))
     print(d1.cmd('ping -c1 192.168.0.2'))
+
     CLI(net)
     net.stop()
-
 
 if __name__ == '__main__':
     setLogLevel('info')
